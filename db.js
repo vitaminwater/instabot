@@ -25,6 +25,17 @@ const getSQL = async (query, params=[]) => await new Promise((resolve, reject) =
   });
 });
 
+const allSQL = async (query, params=[]) => await new Promise((resolve, reject) => {
+  db.all(query, params, (err, rows) => {
+    if (err) return reject(err);
+    const arr = [];
+    rows.forEach((row) => {
+      arr.push(row);
+    });
+    resolve(arr);
+  });
+});
+
 const createMigrationTable = async () => await runSQLFile("create table if not exists migration (name text); create unique index if not exists index_migration_name on migration (name);");
 
 const applyMigrationIdNeeded = async () => {
@@ -39,7 +50,6 @@ const applyMigrationIdNeeded = async () => {
   const setMigrationFileDone = async (migrationFile) => runSQL('insert into migration values(?)', migrationFile);
   const migrationFiles = fs.readdirSync('./migrations').sort();
   await eachSeries(migrationFiles, async (migrationFile) => {
-    console.log(migrationFile);
     if (!await migrationFileDone(migrationFile)) {
       console.log('running migration file', migrationFile);
       const migrationQuery = fs.readFileSync(`./migrations/${migrationFile}`).toString();
@@ -54,10 +64,8 @@ const init = async () => {
   await openDb();
 
   try {
-    db.serialize();
     await createMigrationTable();
     await applyMigrationIdNeeded();
-    db.parallelize();
   } catch(e) {
     console.log(e);
     process.exit();
@@ -68,4 +76,5 @@ module.exports = {
   init,
   runSQL,
   getSQL,
+  allSQL,
 };

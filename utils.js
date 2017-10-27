@@ -1,4 +1,3 @@
-
 const async = require('async');
 
 const find = async (arr, fn) => new Promise((resolve, reject) => async.findSeries(arr, fn, (err, result) => err ? reject(err) : resolve(result)));
