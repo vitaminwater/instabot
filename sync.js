@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const Client = require('instagram-private-api').V1;
 
+const { each } = require('./utils');
 const { getSession, processFeed } = require('./ig');
 const { getSQL, allSQL, runSQL } = require('./db');
 
@@ -8,7 +9,6 @@ let session;
 
 const saveIfNotExists = (table) => async (user) => {
   const { id } = user.params;
-  console.log(id);
   try {
     const { i } = await getSQL(`select id as i from ${table} where id=?`, id);
     await runSQL(`update ${table} set seen=1 where id=?`, id);
@@ -23,6 +23,7 @@ const syncUserFeed = async (feed, table) => {
   await processFeed(feed, saveIfNotExists(table));
   const toDelete = await allSQL(`select id from ${table} where seen=0`);
   console.log(toDelete);
+  await each(toDelete, async ({ id }) => await runSQL(`delete from ${table} where id=?`, id));
 }
 
 const syncFollowing = async (accountId) => {
@@ -41,10 +42,18 @@ const run = async () => {
   try {
     session = getSession();
     const accountId = await session.getAccountId();
-    console.log('Syncing followings');
-    await syncFollowing(accountId);
-    console.log('Syncing followers');
-    await syncFollowers(accountId);
+    const { params: {followerCount, followingCount} } = await Client.Account.getById(session, accountId);
+    const { count: localFollowerCount } = await getSQL('select count(*) from follower');
+    const { count: localFollowingCount } = await getSQL('select count(*) from following');
+    if (followingCount != localFollowingCount) {
+      console.log('Syncing followings');
+      await syncFollowing(accountId);
+    }
+    if (followerCount != localFollowerCount) {
+      console.log('Syncing followers');
+      await syncFollowers(accountId);
+    }
+    console.log('Syncing done');
   } catch(e) {
     console.log(e);
   }
