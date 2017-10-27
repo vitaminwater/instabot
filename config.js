@@ -12,4 +12,13 @@ try {
   Object.assign(config, configFile);
 } catch(e) {console.log(e)}
 
+if (!config.DATA_DIR) {
+  config.DATA_DIR = `${__dirname}/data/${config.USERNAME}`;
+}
+
+const fs = require('fs');
+if (!fs.existsSync(config.DATA_DIR)){
+    fs.mkdirSync(config.DATA_DIR);
+}
+
 module.exports = config;

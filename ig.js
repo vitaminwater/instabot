@@ -1,8 +1,8 @@
-const { USERNAME, PASSWORD } = require('./config');
+const { USERNAME, PASSWORD, DATA_DIR } = require('./config');
 
 const Client = require('instagram-private-api').V1;
 const device = new Client.Device(USERNAME);
-const storage = new Client.CookieFileStorage(__dirname + `/data/${USERNAME}/cookies.json`);
+const storage = new Client.CookieFileStorage(`${DATA_DIR}/cookies.json`);
 
 const { find, findSeries, wait } = require('./utils');
 

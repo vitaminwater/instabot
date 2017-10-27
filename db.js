@@ -1,67 +1,67 @@
-const { USERNAME } = require('./config');
+const { USERNAME, DATA_DIR } = require('./config');
 const fs = require('fs');
 const async = require('async');
 const sqlite3 = require('sqlite3').verbose();
 
+const { eachSeries } = require('./utils');
+
 let db;
 
-const DATA_DIR = `./data/${USERNAME}`;
+const openDb = async () => await new Promise((resolve) => {db = new sqlite3.Database(`${DATA_DIR}/db.sqlite3`, resolve); });
 
-const isFirstRun = () => !fs.existsSync(DATA_DIR);
-
-const createDataDirectory = () => fs.mkdirSync(DATA_DIR);
-
-const openDb = () => { db = new sqlite3.Database(`./${DATA_DIR}/db.sqlite3`); }
-
-const runSQL = async (query, params=[]) => new Promise((resolve, reject) => {
-  db.run(query, params, (e) => {
-    if (e) return reject(e);
+const runSQL = async (query, params=[]) => await new Promise((resolve, reject) => {
+  db.run(query, params, (err) => {
+    if (err) return reject(err);
     resolve();
   });
-})
+});
 
-const getSQL = async (query, params=[]) => new Promise((resolve, reject) => {
+const runSQLFile = async (content) => await eachSeries(content.replace(/\r|\n/g, '').replace(/;$/, '').split(';'), runSQL);
+
+const getSQL = async (query, params=[]) => await new Promise((resolve, reject) => {
   db.get(query, params, (err, row) => {
     if (err) return reject(err);
     resolve(row);
   });
 });
 
-const createMigrationTable = async () => runSQL("create table if not exists migration (name text); create unique index if not exists index_migration_name on migration (name);");
+const createMigrationTable = async () => await runSQLFile("create table if not exists migration (name text); create unique index if not exists index_migration_name on migration (name);");
 
 const applyMigrationIdNeeded = async () => {
   const migrationFileDone = async (migrationFile) => {
-    const { name } = await getSQL('select name from migration where name=?', migrationFile);
-    console.log(name);
-    return !!name;
+    try {
+      const { name } = await getSQL('select name from migration where name=?', migrationFile);
+      return true;
+    } catch(e) {
+      return false;
+    }
   }
   const setMigrationFileDone = async (migrationFile) => runSQL('insert into migration values(?)', migrationFile);
   const migrationFiles = fs.readdirSync('./migrations').sort();
-  async.eachSeries(migrationFiles, async (migrationFile) => {
+  await eachSeries(migrationFiles, async (migrationFile) => {
+    console.log(migrationFile);
     if (!await migrationFileDone(migrationFile)) {
-      try {
-        console.log('running migration file', migrationFile);
-        const migrationQuery = fs.readFileSync(`./migrations/${migrationFile}`).toString();
-        await runSQL(migrationQuery);
-        await setMigrationFileDone(migrationFile);
-      } catch (e) {
-        console.log(e);
-        process.exit();
-      }
+      console.log('running migration file', migrationFile);
+      const migrationQuery = fs.readFileSync(`./migrations/${migrationFile}`).toString();
+      await runSQLFile(migrationQuery);
+      await setMigrationFileDone(migrationFile);
     }
   });
 }
 
 const init = async () => {
-  if (db) return Promise.resolve();
-  if (isFirstRun()) {
-    createDataDirectory();
-    openDb();
+  if (db) return;
+  await openDb();
+
+  try {
+    db.serialize();
     await createMigrationTable();
-  } else {
-    openDb();
+    await applyMigrationIdNeeded();
+    db.parallelize();
+  } catch(e) {
+    console.log(e);
+    process.exit();
   }
-  await applyMigrationIdNeeded();
 };
 
 module.exports = {

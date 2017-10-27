@@ -1,4 +1,6 @@
 node_modules
 cookies
 data/*
-configs/*
+!data/.gitkeep
+configs/
+!configs/example.json
