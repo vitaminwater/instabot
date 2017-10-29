@@ -32,6 +32,7 @@ const syncFollowing = async (accountId) => {
   await syncUserFeed(followingFeed, 'following', true);
 }
 
+// TODO get source from following
 const syncFollowers = async (accountId) => {
   const followersFeed = new Client.Feed.AccountFollowers(session, accountId, 1000);
 
