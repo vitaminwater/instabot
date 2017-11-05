@@ -6,7 +6,7 @@ const each = async (arr, fn) => new Promise((resolve, reject) => async.eachSerie
 const eachSeries = async (arr, fn) => new Promise((resolve, reject) => async.eachSeries(arr, fn, err => err ? reject(err) : resolve()));
 
 const wait = async (millis=-1) => {
-  millis = millis < 0 ? Math.random() * 3000 + 3000 : millis;
+  millis = millis < 0 ? Math.random() * 5000 + 3000 : millis;
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
 

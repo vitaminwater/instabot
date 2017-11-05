@@ -6,7 +6,10 @@ const unfollow = require('./unfollow');
 const followUserFollowers = require('./follow_user_followers');
 const followHashTags = require('./follow_hashtags');
 
+const stat = require('./stat');
+
 const run = async () => {
+  stat.start();
   try {
     await initDb();
     await initIg();
@@ -17,6 +20,7 @@ const run = async () => {
     await followHashTags();
   } catch(e) {
     console.log(e);
+    stat.error(e);
   }
 }
 

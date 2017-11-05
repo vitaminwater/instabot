@@ -4,8 +4,10 @@ const _ = require('lodash');
 const Client = require('instagram-private-api').V1;
 
 const { wait } = require('./utils');
-const { getSession, processFeed } = require('./ig');
+const { getSession, followAccount, processFeed } = require('./ig');
 const { getSQL, runSQL } = require('./db');
+
+const stat = require('./stat');
 
 let session;
 
@@ -24,14 +26,17 @@ const findHashtag = async () => {
 
   const mediaFeed = new Client.Feed.TaggedMedia(session, hashtag, 1000);
   processFeed(mediaFeed, async ({params: { user }}) => {
-    const { following } = await getSQL('SELECT EXISTS(SELECT 1 FROM following WHERE id=? LIMIT 1) as following', user.pk);
-    const { follower } = await getSQL('SELECT EXISTS(SELECT 1 FROM follower WHERE id=? LIMIT 1) as follower', user.pk);
-    const { unfollowed } = await getSQL('SELECT EXISTS(SELECT 1 FROM unfollowed WHERE id=? LIMIT 1) as unfollowed', user.pk);
+    const { following } = await getSQL('select exists(select 1 from following where id=? limit 1) as following', user.pk);
+    const { follower } = await getSQL('select exists(select 1 from follower where id=? limit 1) as follower', user.pk);
+    const { unfollowed } = await getSQL('select exists(select 1 from unfollowed where id=? limit 1) as unfollowed', user.pk);
     if (following || follower || unfollowed) {
       console.log('skip', user.username);
       return;
     }
-    console.log('follow', user.username);
+    await wait();
+    await followAccount(user);
+    await runSQL('insert into following (id, params, source) values (?, ?, ?)', [user.pk, JSON.stringify(user), `hashtag:${hashtag}`]);
+    stat.follow(user);
   });
 }
 
@@ -41,6 +46,7 @@ const run = async () => {
     await findHashtag();
   } catch(e) {
     console.log(e);
+    stat.error(e);
   }
 }
 
