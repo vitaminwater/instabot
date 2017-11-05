@@ -4,7 +4,7 @@ const _ = require('lodash');
 const Client = require('instagram-private-api').V1;
 
 const { wait } = require('./utils');
-const { getSession, followAccount, processFeed } = require('./ig');
+const { getSession, followAccount, processFeed, likeFirstUnlikedPic } = require('./ig');
 const { getSQL, runSQL } = require('./db');
 
 const stat = require('./stat');
@@ -33,10 +33,12 @@ const findHashtag = async () => {
       console.log('skip', user.username);
       return;
     }
-    await wait();
+    console.log(`🤖 processing ${user.username}`);
+    await likeFirstUnlikedPic(user, Math.ceil(Math.random()*2)+1);
     await followAccount(user);
     await runSQL('insert into following (id, params, source) values (?, ?, ?)', [user.pk, JSON.stringify(user), `hashtag:${hashtag}`]);
     stat.follow(user);
+    await wait();
   });
 }
 

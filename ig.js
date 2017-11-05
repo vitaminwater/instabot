@@ -30,24 +30,23 @@ const followAccount = async (account) => {
   await Client.Relationship.create(session, account.pk);
 }
 
-const likePic = (session, media) => () => {
+const likePic = async (media) => {
   if (!media.hasLiked) {
-    console.log('❤️  liking media', media.params.id);
-    return Client.Like.create(session, media.params.id)
-      .then(wait(2000 + Math.random() * 2000))
-      .then(() => false);
+    console.log(`❤️  liking media ${media.pk}`);
+    await Client.Like.create(session, media.pk)
   }
-  return false;
 }
 
-const likeFirstUnlikedPic = (session, account, n=-1) => () => {
-  const userMediaFeed = new Client.Feed.UserMedia(session, account.params.id);
-  return processFeed(session, userMediaFeed, (session, media) => (cancel) => {
-    if (cancel) return cancel;
-    if (!media.params.hasLiked) {
-      return Promise.resolve()
-        .then(likePic(session, media))
-        .then(() => n > 0 && --n == 0);
+const likeFirstUnlikedPic = async (account, n=-1) => {
+  n = Math.floor(n);
+  if (!n) return;
+  const userMediaFeed = new Client.Feed.UserMedia(session, account.pk);
+  await processFeed(userMediaFeed, async ({params: media}) => {
+    if (!media.hasLiked) {
+      await likePic(media)
+      await wait();
+      const cancel = n > 0 && --n == 0;
+      return cancel;
     }
     return false;
   });
@@ -60,4 +59,6 @@ module.exports = {
   getSession,
   followAccount,
   processFeed,
+  likePic,
+  likeFirstUnlikedPic,
 }
