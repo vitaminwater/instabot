@@ -3,8 +3,7 @@ const { init: initIg } = require('./ig');
 
 const sync = require('./sync');
 const unfollow = require('./unfollow');
-const followUserFollowers = require('./follow_user_followers');
-const followHashTags = require('./follow_hashtags');
+const follow = require('./follow');
 
 const stat = require('./stat');
 
@@ -15,9 +14,8 @@ const run = async () => {
     await initIg();
 
     /*await sync();
-    await unfollow();
-    await followUserFollowers();*/
-    await followHashTags();
+    await unfollow();*/
+    await follow();
   } catch(e) {
     console.log(e);
     stat.error(e);
