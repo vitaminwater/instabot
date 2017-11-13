@@ -13,9 +13,11 @@ const run = async () => {
     await initDb();
     await initIg();
 
-    /*await sync();
-    await unfollow();*/
-    await follow();
+    await sync();
+    await unfollow();
+    while (true) {
+      await follow();
+    }
   } catch(e) {
     console.log(e);
     stat.error(e);

@@ -27,17 +27,19 @@ const unfollow = (n) => async (user) => {
 const run = async () => {
   try {
     session = getSession();
-    const { n } = await getSQL('select count(*) as n from following');
+    const { nFollowing } = await getSQL('select count(*) as nFollowing from following');
+    const { nFollower } = await getSQL('select count(*) as nFollower from follower');
 
-    const accountId = await session.getAccountId();
-    const followingFeed = new Client.Feed.AccountFollowing(session, accountId, 1000);
-
-    const nUnfollow = Math.ceil(n - (2500 + Math.random() * 500));
+    const aimFollower = Math.min(1000, Math.max(300, nFollower / 10));
+    const nUnfollow = Math.ceil(nFollowing - aimFollower);
 
     if (nUnfollow <= 0) return;
     console.log(`Unfollow ${nUnfollow} accounts.`);
 
-    await processFeed(followingFeed, unfollow(n));
+    const accountId = await session.getAccountId();
+    const followingFeed = new Client.Feed.AccountFollowing(session, accountId, 1000);
+
+    await processFeed(followingFeed, unfollow(nUnfollow));
   } catch(e) {
     console.log(e);
     stat.error(e);

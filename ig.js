@@ -15,7 +15,7 @@ const init = async () => {
 const processFeed = async (feed, fn, parallel=false) => {
   while (true) {
     const items = await feed.get();
-    const i = parallel == false ? await find(items, fn) : await findSeries(items, fn);
+    const i = parallel == true ? await find(items, fn) : await findSeries(items, fn);
     await wait();
     if (typeof i !== 'undefined') {
       console.log('🛑  processFeed cancelled')
@@ -27,6 +27,7 @@ const processFeed = async (feed, fn, parallel=false) => {
 
 const followAccount = async (account) => {
   console.log(`🙏  follow account ${account.username}`);
+  if (account.username == USERNAME) return;
   await Client.Relationship.create(session, account.pk);
 }
 
@@ -37,13 +38,14 @@ const likePic = async (media) => {
   }
 }
 
-const likeFirstUnlikedPic = async (account, n=-1) => {
+const likeFirstUnlikedPic = async (account, n=-1, onLike) => {
   n = Math.floor(n);
   if (!n) return;
   const userMediaFeed = new Client.Feed.UserMedia(session, account.pk);
   await processFeed(userMediaFeed, async ({params: media}) => {
     if (!media.hasLiked) {
       await likePic(media)
+      onLike && await onLike(media);
       await wait();
       const cancel = n > 0 && --n == 0;
       return cancel;
