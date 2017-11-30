@@ -11,13 +11,18 @@ let session;
 
 const unfollow = (n) => async (user) => {
   const { id } = user.params;
+  const { since } = await getSQL('select since from following where id=?', user.id);
+  if (new Date(since).getTime() >= new Date().getTime() - 3600 * 24 * 1 * 1000) {
+    console.log(`Skipping ${user.params.username}, too young 👶`);
+    return;
+  }
   await Client.Relationship.destroy(session, id);
   const { source } = await getSQL('select source from following where id=?', user.id);
   await Promise.all([
     runSQL('delete from following where id=?', id), 
     runSQL(`insert into unfollowed (id, params, source) values (?, ?, ?)`, [id, JSON.stringify(user.params), source])
   ]);
-  console.log(`Unfollowed ${user.params.username}`);
+  console.log(`👋  Unfollowed ${user.params.username}`);
   stat.unfollow(user.params);
   const cancel = !--n;
   if (!cancel) await wait();
@@ -30,7 +35,7 @@ const run = async () => {
     const { nFollowing } = await getSQL('select count(*) as nFollowing from following');
     const { nFollower } = await getSQL('select count(*) as nFollower from follower');
 
-    const aimFollower = Math.min(1000, Math.max(300, nFollower / 10));
+    const aimFollower = 666;
     const nUnfollow = Math.ceil(nFollowing - aimFollower);
 
     if (nUnfollow <= 0) return;
@@ -43,6 +48,7 @@ const run = async () => {
   } catch(e) {
     console.log(e);
     stat.error(e);
+    return;
   }
 }
 

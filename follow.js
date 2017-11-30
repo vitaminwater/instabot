@@ -71,6 +71,7 @@ const run = async () => {
   } catch(e) {
     console.log(e);
     stat.error(e);
+    return
   }
 }
 
