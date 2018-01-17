@@ -14,7 +14,7 @@ const run = async () => {
     await initIg();
 
     await sync();
-    await unfollow();
+    //await unfollow();
     while (true) {
       await follow();
     }
