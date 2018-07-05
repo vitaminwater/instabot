@@ -35,7 +35,7 @@ const run = async () => {
     const { nFollowing } = await getSQL('select count(*) as nFollowing from following');
     const { nFollower } = await getSQL('select count(*) as nFollower from follower');
 
-    const aimFollower = 666;
+    const aimFollower = 100;
     const nUnfollow = Math.ceil(nFollowing - aimFollower);
 
     if (nUnfollow <= 0) return;

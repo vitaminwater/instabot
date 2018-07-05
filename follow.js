@@ -13,7 +13,7 @@ let session;
 
 const hashtagRegex = /#\w+/g;
 
-const processAccount = async (account, source, followFollowers=false) => {
+const processAccount = async (account, source, followFollowers=false, limitFollowers=0) => {
   if (account.username == USERNAME) return;
   const { following } = await getSQL('select exists(select 1 from following where id=? limit 1) as following', account.pk);
   const { follower } = await getSQL('select exists(select 1 from follower where id=? limit 1) as follower', account.pk);
@@ -30,13 +30,13 @@ const processAccount = async (account, source, followFollowers=false) => {
   }
   await wait();
   if (followFollowers) {
-    await followAccountFollowers(account, source);
+    await followAccountFollowers(account, source, limitFollowers);
   }
   await wait();
 }
 
-const followAccountFollowers = async (account, source) => {
-  let n = 50 + Math.ceil(Math.random() * 100);
+const followAccountFollowers = async (account, source, limit=0) => {
+  let n = limit || (50 + Math.ceil(Math.random() * 100));
   console.log(`😘 follow ${n} followers of ${account.username}`);
   const feed = new Client.Feed.AccountFollowers(session, account.pk);
   await processFeed(feed, async ({ params: follower }) => {
@@ -60,7 +60,7 @@ const findHashtag = async () => {
   return hashtag;
 }
 
-const run = async () => {
+const followRandomTag = async () => {
   try {
     session = getSession();
     const hashtag = await findHashtag();
@@ -75,4 +75,21 @@ const run = async () => {
   }
 }
 
-module.exports = run;
+const followUserFollowers = async (username) => {
+  try {
+    session = getSession();
+
+    const user = await Client.Account.searchForUser(session, username);
+    await processAccount(user.params, `username:${username}`, true, 100000);
+
+  } catch(e) {
+    console.log(e);
+    stat.error(e);
+    return
+  }
+}
+
+module.exports = {
+  followRandomTag,
+  followUserFollowers,
+}
